@@ -1,75 +1,62 @@
-import { useCMEditViewDataManager } from "@strapi/helper-plugin";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 export const MediaListener = () => {
-  const data = useCMEditViewDataManager();
-  const { initialData, modifiedData, slug } = data;
-
-  const equal = !deepEqual(initialData, modifiedData);
+  const clickCountRef = useRef(0);
+  const isRefreshingRef = useRef(false);
 
   useEffect(() => {
-    const checkForButton = () => {
-      const elements = document.querySelectorAll("*");
+    const handlePlusButtonClick = (e: Event) => {
+      const target = e.target as HTMLElement;
 
-      for (const el of elements) {
-        if (el.textContent && el.textContent.includes("Add new assets")) {
-          console.log('🎯 Found "Add new assets" button');
+      const button = target.closest("button");
+      if (!button) return;
 
-          onMediaButtonFound(el);
+      const hasAddText = button
+        .querySelector("span")
+        ?.textContent?.includes("Add");
 
-          return;
+      if (hasAddText && !isRefreshingRef.current) {
+        clickCountRef.current++;
+
+        if (clickCountRef.current > 1) {
+          setTimeout(() => {
+            refreshModal(button);
+          }, 0);
         }
       }
     };
 
-    checkForButton();
+    document.addEventListener("click", handlePlusButtonClick, true);
 
-    // const observer = new MutationObserver(() => {
-    //   checkForButton();
-    // });
-
-    // observer.observe(document.body, {
-    //   childList: true,
-    //   subtree: true,
-    //   characterData: true,
-    // });
-
-    // return () => observer.disconnect();
+    return () => {
+      document.removeEventListener("click", handlePlusButtonClick, true);
+    };
   }, []);
 
-  const onMediaButtonFound = (element: Element) => {
-    console.log("✅ Media button is now visible!");
+  const refreshModal = (plusButton: HTMLButtonElement) => {
+    isRefreshingRef.current = true;
 
-    // Add your logic here:
-    // - Click the button
-    // - Monitor clicks
-    // - Log events
-    // etc.
+    const closeButton = Array.from(document.querySelectorAll("button")).find(
+      (btn) => {
+        const span = btn.querySelector("span");
+        return span?.textContent === "Close the modal";
+      }
+    ) as HTMLElement;
+
+    if (closeButton) {
+      closeButton.click();
+
+      setTimeout(() => {
+        if (plusButton) plusButton.click();
+
+        setTimeout(() => {
+          isRefreshingRef.current = false;
+        }, 0);
+      }, 0);
+    } else {
+      isRefreshingRef.current = false;
+    }
   };
 
-  return <div>chuj: {equal}</div>;
+  return null;
 };
-
-function deepEqual(a: any, b: any) {
-  if (a === b) return true;
-  if (typeof a !== typeof b) return false;
-  if (a == null || b == null) return false;
-  if (typeof a === "object") {
-    if (Array.isArray(a)) {
-      if (!Array.isArray(b) || a.length !== b.length) return false;
-      for (let i = 0; i < a.length; i++) {
-        if (!deepEqual(a[i], b[i])) return false;
-      }
-      return true;
-    } else {
-      const aKeys = Object.keys(a);
-      const bKeys = Object.keys(b);
-      if (aKeys.length !== bKeys.length) return false;
-      for (const key of aKeys) {
-        if (!b.hasOwnProperty(key) || !deepEqual(a[key], b[key])) return false;
-      }
-      return true;
-    }
-  }
-  return a === b;
-}
