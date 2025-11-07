@@ -11,9 +11,7 @@ export const MediaListener = () => {
       const button = target.closest("button");
       if (!button) return;
 
-      const hasAddText = button
-        .querySelector("span")
-        ?.textContent?.includes("Add");
+      const hasAddText = button.querySelector("span")?.textContent === "Add";
 
       if (hasAddText && !isRefreshingRef.current) {
         clickCountRef.current++;
